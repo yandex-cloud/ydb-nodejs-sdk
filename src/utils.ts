@@ -1,4 +1,5 @@
-import grpc, {Metadata} from 'grpc';
+import {Metadata} from '@grpc/grpc-js';
+import * as grpc from '@grpc/grpc-js';
 import * as $protobuf from 'protobufjs';
 import _ from 'lodash';
 import {Ydb} from '../proto/bundle';
@@ -55,7 +56,7 @@ export abstract class GrpcService<Api extends $protobuf.rpc.Service> {
             new grpc.Client(host, grpc.credentials.createInsecure());
         const rpcImpl: $protobuf.RPCImpl = (method, requestData, callback) => {
             const path = `/${this.name}/${method.name}`;
-            client.makeUnaryRequest(path, _.identity, _.identity, requestData, null, null, callback);
+            client.makeUnaryRequest(path, _.identity, _.identity, requestData, callback);
         };
         return this.apiCtor.create(rpcImpl);
     }
@@ -111,7 +112,11 @@ export abstract class AuthenticatedService<Api extends $protobuf.rpc.Service> {
             new grpc.Client(host, grpc.credentials.createInsecure());
         const rpcImpl: $protobuf.RPCImpl = (method, requestData, callback) => {
             const path = `/${this.name}/${method.name}`;
-            client.makeUnaryRequest(path, _.identity, _.identity, requestData, this.metadata, null, callback);
+            if (this.metadata) {
+                client.makeUnaryRequest(path, _.identity, _.identity, requestData, this.metadata, callback);
+            } else {
+                client.makeUnaryRequest(path, _.identity, _.identity, requestData, callback);
+            }
         };
         return this.apiCtor.create(rpcImpl);
     }

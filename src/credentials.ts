@@ -1,4 +1,4 @@
-import grpc from 'grpc';
+import {Metadata} from '@grpc/grpc-js';
 import jwt from 'jsonwebtoken';
 import {DateTime} from 'luxon';
 import {GrpcService, ISslCredentials, sleep, withTimeout} from "./utils";
@@ -8,8 +8,8 @@ import IamTokenService = yandex.cloud.iam.v1.IamTokenService;
 import ICreateIamTokenResponse = yandex.cloud.iam.v1.ICreateIamTokenResponse;
 
 
-function makeCredentialsMetadata(token: string, dbName: string): grpc.Metadata {
-    const metadata = new grpc.Metadata();
+function makeCredentialsMetadata(token: string, dbName: string): Metadata {
+    const metadata = new Metadata();
     metadata.add('x-ydb-auth-ticket', token);
     metadata.add('x-ydb-database', dbName);
     return metadata;
@@ -33,14 +33,14 @@ export interface ITokenService {
 }
 
 export interface IAuthService {
-    getAuthMetadata: () => Promise<grpc.Metadata>,
+    getAuthMetadata: () => Promise<Metadata>,
     sslCredentials?: ISslCredentials
 }
 
 export class TokenAuthService implements IAuthService {
     constructor(private token: string, private dbName: string, public sslCredentials?: ISslCredentials) {}
 
-    public async getAuthMetadata(): Promise<grpc.Metadata> {
+    public async getAuthMetadata(): Promise<Metadata> {
         return makeCredentialsMetadata(this.token, this.dbName);
     }
 }
@@ -107,7 +107,7 @@ export class IamAuthService extends GrpcService<IamTokenService> implements IAut
         }
     }
 
-    public async getAuthMetadata(): Promise<grpc.Metadata> {
+    public async getAuthMetadata(): Promise<Metadata> {
         if (this.expired) {
             await this.updateToken();
         }
@@ -125,7 +125,7 @@ export class MetadataAuthService implements IAuthService {
         this.tokenService = tokenService || new TokenService();
     }
 
-    public async getAuthMetadata(): Promise<grpc.Metadata> {
+    public async getAuthMetadata(): Promise<Metadata> {
         let token = this.tokenService.getToken();
         if (!token && typeof this.tokenService.initialize === 'function') {
             await this.tokenService.initialize();
